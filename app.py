@@ -8,13 +8,27 @@ class App:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.commands = []
-        self.history = [{"position": (0,0), "angle": 0, "line_id": 0}]
 
-    def set_widgets(self, robot: Robot, canvas: Canvas, frame: Frame):
+    def set_widgets(self, robot: Robot, canvas: Canvas, frame: Frame) -> None:
         """Set the different widgets for the app."""
         self.robot = robot
         self.canvas = canvas
         self.frame = frame
+        self.history = [{"position": (self.robot.starting_pos[0],self.robot.starting_pos[1]), "angle": self.robot.starting_angle, "line_id": 0}]
+
+    
+    def create_status_window(self) -> None:
+        self.status_window = tk.Toplevel(self.root)
+        self.status_window.title("Robot Status")
+        self.status_window.geometry("300x100")
+        self.status_window.angle_label = tk.Label(self.status_window, text=f"Angle: {self.robot.angle}")
+        self.status_window.angle_label.pack(pady=10)
+        self.status_window.position_label = tk.Label(self.status_window, text=f"position: {(self.robot.x, self.robot.y)}")
+        self.status_window.position_label.pack(pady=10)
+
+    def update_status_window(self) -> None:
+        self.status_window.angle_label.config(text=f"Angle: {self.robot.angle}")
+        self.status_window.position_label.config(text=f"Position: {(self.robot.x, self.robot.y)}")
 
     def start(self) -> None:
         """Start the main loop of the tkinter app."""
@@ -34,8 +48,11 @@ class App:
     def undo(self):
         if len(self.history) > 1:
             item = self.history.pop()
+            last = self.history[len(self.history)-1]
             self.canvas._canvas.delete(item["line_id"])
-            self.robot.update(self.history[len(self.history)-1]["position"][0], self.history[len(self.history)-1]["position"][1], item["angle"])
+            self.robot.update(last["position"][0], last["position"][1], last["angle"])
+            self.update_status_window()
+
 
     def clean_commands(self) -> None:
         """Clean the commands array before saving it to file."""

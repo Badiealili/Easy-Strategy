@@ -1,12 +1,13 @@
 from __future__ import annotations
 import tkinter as tk
 import robot
+import app
 from PIL import Image, ImageTk
 import math
 
 class Canvas:
     """Wrapper class around the tkinter canvas class, with extra parameters and custom methods"""
-    def __init__(self, root: tk.Tk, app, robot: robot.Robot, height: int, width: int, grid_size:int) -> None:
+    def __init__(self, root: tk.Tk, app: app.App, robot: robot.Robot, height: int, width: int, grid_size:int) -> None:
         # Initial attributes
         self.app = app
         self.robot = robot
@@ -102,10 +103,12 @@ class Canvas:
         if angle_change == 0:
             command = "F" + str(distance)
             commands.append(command)
+            new_angle = angle
 
         elif abs(angle_change) == 180:
             command = "B" + str(distance)
             commands.append(command)
+            new_angle = angle
 
         elif abs(angle_change) <= 90:
             command1 = "R" + str(angle_change)
@@ -127,6 +130,7 @@ class Canvas:
         self.robot.update(x=x, y=y, angle=new_angle)
         self.app.commands.extend(commands)
         self.app.update_history({"position": (self.robot.x, self.robot.y), "angle": self.robot.angle, "line_id": self.current_line})
+        self.app.update_status_window()
         self.current_line = None
 
     def clear(self):
