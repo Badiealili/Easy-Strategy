@@ -14,7 +14,7 @@ class Canvas:
         self.height = height
         self.width =  width
         self.grid_size = grid_size
-        self.current_line = None
+        self.guidelines = []
         self.valid_line = None
         self._canvas = tk.Canvas(root, height=self.height, width=self.width)
         
@@ -67,8 +67,24 @@ class Canvas:
         y = (event.y // self.grid_size) * self.grid_size
         
         # Delete the last line to create a new one whenever the mouse moves
-        self._canvas.delete(self.current_line)
-        self.current_line = self._canvas.create_line(self.robot.x, self.robot.y, x, y, fill="cyan", width=2)
+        for guideline in self.guidelines:
+            self._canvas.delete(guideline)
+        self.guidelines = []
+        self.guidelines.append(self._canvas.create_line(self.robot.x, self.robot.y, x, y, fill="cyan", width=2))
+        # Draw the robot stopping limit, takes some calculations.
+        y1 = y + ( self.robot.width // 2)
+        y2 = y1
+        x1 = x - self.robot.height // 2
+        x2 = x + self.robot.height // 2
+
+        distance = round(math.sqrt(((self.robot.x - x)**2) + (self.robot.y - y)**2))
+        angle_cosine = (x - self.robot.x) / distance
+        angle = round(math.degrees(math.acos(angle_cosine))) + 90
+        if y < self.robot.y:
+            angle = -angle
+        x1, y1 = self.rotate_point(x=x1, y=y1, angle=angle, cx=x, cy=y)
+        x2, y2 = self.rotate_point(x=x2, y=y2, angle=angle, cx=x, cy=y)
+        self.guidelines.append(self._canvas.create_line(x2, y2, x1, y1, fill="yellow", width=2))
 
     def mouse_up(self, event):
         """Event handler for releasing the mouse on the canvas.
@@ -129,9 +145,21 @@ class Canvas:
         # Update
         self.robot.update(x=x, y=y, angle=new_angle)
         self.app.commands.extend(commands)
-        self.app.update_history({"position": (self.robot.x, self.robot.y), "angle": self.robot.angle, "line_id": self.current_line})
+        self.app.update_history({"position": (self.robot.x, self.robot.y), "angle": self.robot.angle, "line_id": self.guidelines[0]})
         self.app.update_status_window()
-        self.current_line = None
+        self._canvas.delete(self.guidelines[1])
+        self.guidelines = []
+
+    def rotate_point(self, x: int, y: int, angle: int, cx: int, cy: int) -> tuple[float, float]:
+        """Rotate a specific point (x,y) with an angle 'angle' around the center (cx,cy)"""
+        xt = x - cx
+        yt = y - cy
+
+        theta = math.radians(angle % 360)
+        xr = xt*math.cos(theta) - yt*math.sin(theta)
+        yr = xt*math.sin(theta) + yt*math.cos(theta)
+
+        return xr + cx, yr + cy
 
     def clear(self):
         """Clear the canvas from the drawn path."""

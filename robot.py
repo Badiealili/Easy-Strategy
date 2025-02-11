@@ -64,22 +64,11 @@ class Robot:
         """Reset the robot to its initial parameters."""
         self.update(self.starting_pos[0], self.starting_pos[1], self.starting_angle)
 
-    def rotate_point(self, x: int, y: int, angle: int, cx: int, cy: int) -> tuple[float, float]:
-        """Rotate a specific point (x,y) with an angle 'angle' around the center (cx,cy)"""
-        xt = x - cx
-        yt = y - cy
-
-        theta = math.radians(angle % 360)
-        xr = xt*math.cos(theta) - yt*math.sin(theta)
-        yr = xt*math.sin(theta) + yt*math.cos(theta)
-
-        return xr + cx, yr + cy
-
     def rotate(self, angle: int, coords: tuple[int, int]) -> list[tuple[int, int]]:
         """Rotate the robot rectangle with *angle* degrees around the robot's center point"""
         [x1, y1, x2, y2, x3, y3, x4, y4] = coords
         points = [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]
-        new_points = [self.rotate_point(x=x, y=y, angle=angle, cx=self.x, cy=self.y) for x,y in points]
+        new_points = [self.canvas.rotate_point(x=x, y=y, angle=angle, cx=self.x, cy=self.y) for x,y in points]
         return new_points
 
 
