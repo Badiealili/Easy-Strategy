@@ -79,9 +79,26 @@ class Canvas:
 
         distance = round(math.sqrt(((self.robot.x - x)**2) + (self.robot.y - y)**2))
         angle_cosine = (x - self.robot.x) / distance
-        angle = round(math.degrees(math.acos(angle_cosine))) + 90
+        angle = round(math.degrees(math.acos(angle_cosine)))
+
+        # Correct the value of the angle depending on the direction
         if y < self.robot.y:
-            angle = -angle
+            angle = -angle % 360
+
+        # Calculate the rotation
+        angle_change = (angle - self.robot.angle)
+        # Pick the smallest angle change of the two directions
+        if angle_change > 180:
+            angle_change = -angle_change % 360
+        elif angle_change < - 180:
+            angle_change = -(angle_change % 360)
+                
+        # Inverse the angle to account for the optimazation done by minimizing the rotation angle
+        if abs(angle_change) > 90:
+            angle = angle + 180
+        
+        angle-= 90
+
         x1, y1 = self.rotate_point(x=x1, y=y1, angle=angle, cx=x, cy=y)
         x2, y2 = self.rotate_point(x=x2, y=y2, angle=angle, cx=x, cy=y)
         self.guidelines.append(self._canvas.create_line(x2, y2, x1, y1, fill="yellow", width=2))
@@ -95,55 +112,52 @@ class Canvas:
         
         x = (event.x // self.grid_size) * self.grid_size    
         y = (event.y // self.grid_size) * self.grid_size
-        new_angle = None
 
         distance = round(math.sqrt(((self.robot.x - x)**2) + (self.robot.y - y)**2))
         
         # If there was no displacement, do nothing. 
         if distance == 0:
             return
-        
+
         # Calculate the new angle based on the drawn trajectory
         angle_cosine = (x - self.robot.x) / distance
         angle = round(math.degrees(math.acos(angle_cosine)))
 
-        # Depending on the direction, negate the new angle
-        # Positive for clockwise
+        # Correct the value of the angle depending on the direction
         if y < self.robot.y:
-            angle = -angle
+            angle = -angle % 360
 
         # Calculate the rotation
         angle_change = angle - self.robot.angle
+
+        # Pick the smallest angle change of the two directions
+        if angle_change > 180:
+            angle_change = -(360 - angle_change)
+        elif angle_change < - 180:
+            angle_change = (angle_change % 360)
 
         commands = []
         if angle_change == 0:
             command = "F" + str(distance)
             commands.append(command)
-            new_angle = angle
 
         elif abs(angle_change) == 180:
             command = "B" + str(distance)
             commands.append(command)
-            new_angle = angle
 
         elif abs(angle_change) <= 90:
-            command1 = "R" + str(angle_change)
-            command2 = "F" + str(distance)
-            commands.extend([command1, command2])
-            new_angle = angle
+            commands.extend(["R" + str(angle_change), "F" + str(distance)])
 
         # Minimize the rotation degree whenever possible
         # Example: if rotation is 135, instead of rotating 135 degrees and going forward, rotate -45 degrees and go backwards
         # Might change depending on the next action
         else:
             angle_change = angle_change % 360 - 180
-            command1 = "R" + str(angle_change)
-            command2 = "B" + str(distance)
-            commands.extend([command1, command2])
-            new_angle = self.robot.angle + angle_change
+            angle = (angle - 180) % 360
+            commands.extend(["R" + str(angle_change), "B" + str(distance)])
 
-        # Update
-        self.robot.update(x=x, y=y, angle=new_angle)
+        # Update everything
+        self.robot.update(x=x, y=y, angle=angle)
         self.app.commands.extend(commands)
         self.app.update_history({"position": (self.robot.x, self.robot.y), "angle": self.robot.angle, "line_id": self.guidelines[0]})
         self.app.update_status_window()
